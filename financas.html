@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador Financeiro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .container {
+            max-width: 1024px;
+        }
+        .shadow-custom {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #4a90e2;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mx-auto p-4 md:p-8">
+        <div class="bg-white p-6 rounded-2xl shadow-custom">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Gerenciador Financeiro</h1>
+            <div id="user-info" class="text-xs text-gray-500 mb-4 text-center"></div>
+
+            <!-- Dashboard de Resumo -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                <div class="bg-blue-500 text-white p-4 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium opacity-80">Saldo Total</div>
+                        <div id="total-balance" class="text-2xl font-bold">R$ 0,00</div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c-1.11 0-2.008.288-2.85 1m5.7 0a3.972 3.972 0 01-2.85-1m5.7 0a3.972 3.972 0 01-2.85-1m-2.85-1h-2.85a3.972 3.972 0 00-2.85 1m5.7 0a3.972 3.972 0 01-2.85-1m-5.7 0a3.972 3.972 0 01-2.85-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                    </svg>
+                </div>
+                <div class="bg-green-500 text-white p-4 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium opacity-80">Receitas</div>
+                        <div id="total-income" class="text-2xl font-bold">R$ 0,00</div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c-1.11 0-2.008.288-2.85 1m5.7 0a3.972 3.972 0 01-2.85-1m5.7 0a3.972 3.972 0 01-2.85-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                    </svg>
+                </div>
+                <div class="bg-red-500 text-white p-4 rounded-xl shadow-md flex items-center justify-between">
+                    <div>
+                        <div class="text-sm font-medium opacity-80">Despesas</div>
+                        <div id="total-expenses" class="text-2xl font-bold">R$ 0,00</div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c-1.11 0-2.008.288-2.85 1m5.7 0a3.972 3.972 0 01-2.85-1m5.7 0a3.972 3.972 0 01-2.85-1M12 21a9 9 0 100-18 9 9 0 000 18z" />
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Botões e Resultados da Análise Financeira -->
+            <div class="mb-8 space-y-4">
+                <button id="analyze-button" class="w-full bg-purple-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors duration-200">
+                    ✨ Dicas de Economia
+                </button>
+                <div id="analysis-result" class="mt-4 p-4 bg-gray-100 rounded-xl hidden">
+                    <p class="text-gray-700 leading-relaxed" id="analysis-text"></p>
+                </div>
+
+                <button id="suggest-budget-button" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-200">
+                    ✨ Sugerir Orçamento
+                </button>
+                <div id="budget-result" class="mt-4 p-4 bg-gray-100 rounded-xl hidden">
+                    <p class="text-gray-700 leading-relaxed mb-4" id="budget-explanation"></p>
+                    <table class="min-w-full bg-white rounded-md overflow-hidden shadow-sm">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Categoria</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium text-gray-700">Porcentagem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="budget-table-body">
+                            <!-- Budget items will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Formulário de Transação -->
+            <form id="transaction-form" class="space-y-4">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Adicionar Nova Transação</h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Data</label>
+                        <input type="date" id="date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
+                    </div>
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">Descrição</label>
+                        <input type="text" id="description" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" placeholder="Ex: Salário, Aluguel">
+                    </div>
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select id="type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
+                            <option value="Entrada">Entrada</option>
+                            <option value="Saída">Saída</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="value" class="block text-sm font-medium text-gray-700">Valor (R$)</label>
+                        <input type="number" id="value" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                        <label for="category" class="block text-sm font-medium text-gray-700">Categoria</label>
+                        <select id="category" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"></select>
+                    </div>
+                    <div>
+                        <label for="payment-method" class="block text-sm font-medium text-gray-700">Meio de Pagamento</label>
+                        <select id="payment-method" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Débito">Débito</option>
+                            <option value="Crédito">Crédito</option>
+                            <option value="PIX">PIX</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="is-installment" class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                        <label for="is-installment" class="text-sm font-medium text-gray-700">Compra Parcelada?</label>
+                    </div>
+                    <div id="installment-fields" class="hidden">
+                        <label for="total-installments" class="block text-sm font-medium text-gray-700">Total de Parcelas</label>
+                        <input type="number" id="total-installments" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition-colors duration-200">
+                    Adicionar Transação
+                </button>
+            </form>
+
+            <!-- Seção de Transações -->
+            <div class="mt-10">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Histórico de Transações</h2>
+                <div class="overflow-x-auto rounded-xl shadow-md">
+                    <table class="min-w-full bg-white divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descrição</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transaction-list" class="bg-white divide-y divide-gray-200">
+                            <!-- Transactions will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Seção de Parcelas -->
+            <div class="mt-10">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-700">Parcelas Pendentes</h2>
+                <div id="installments-list" class="space-y-4">
+                    <!-- Installments will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
+        // Log Firebase events for debugging
+        setLogLevel('debug');
+        
+        // CUIDADO: Este é o local onde você deve colar a sua configuração do Firebase.
+        // Copie a sua configuração do console do Firebase e substitua o conteúdo abaixo.
+        const firebaseConfig = {
+          // Cole sua configuração do Firebase aqui
+        };
+
+        const appId = firebaseConfig.projectId;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        let userId = null;
+        let dbInitialized = false;
+
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const userInfoDiv = document.getElementById('user-info');
+        const transactionList = document.getElementById('transaction-list');
+        const installmentsList = document.getElementById('installments-list');
+        const totalBalanceEl = document.getElementById('total-balance');
+        const totalIncomeEl = document.getElementById('total-income');
+        const totalExpensesEl = document.getElementById('total-expenses');
+        const isInstallmentCheckbox = document.getElementById('is-installment');
+        const installmentFieldsDiv = document.getElementById('installment-fields');
+        const totalInstallmentsInput = document.getElementById('total-installments');
+        const categorySelect = document.getElementById('category');
+        const analyzeButton = document.getElementById('analyze-button');
+        const analysisResultDiv = document.getElementById('analysis-result');
+        const analysisTextEl = document.getElementById('analysis-text');
+        const suggestBudgetButton = document.getElementById('suggest-budget-button');
+        const budgetResultDiv = document.getElementById('budget-result');
+        const budgetExplanationEl = document.getElementById('budget-explanation');
+        const budgetTableBody = document.getElementById('budget-table-body');
+
+        const categories = {
+            'Entrada': ['Salário', 'Renda Extra', 'Investimentos', 'Outros'],
+            'Saída': ['Aluguel', 'Internet', 'Energia', 'Água', 'Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Compras', 'Outros']
+        };
+
+        const updateCategories = (type) => {
+            categorySelect.innerHTML = '';
+            categories[type].forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+        };
+
+        // Event listener for transaction type change
+        document.getElementById('type').addEventListener('change', (e) => {
+            updateCategories(e.target.value);
+        });
+
+        // Initialize categories on page load
+        updateCategories('Entrada');
+        
+        // Toggle installment fields visibility
+        isInstallmentCheckbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                installmentFieldsDiv.classList.remove('hidden');
+                totalInstallmentsInput.setAttribute('required', 'true');
+            } else {
+                installmentFieldsDiv.classList.add('hidden');
+                totalInstallmentsInput.removeAttribute('required');
+            }
+        });
+
+        // Firebase Auth listener
+        onAuthStateChanged(auth, async (user) => {
+            loadingOverlay.classList.add('hidden');
+            if (user) {
+                userId = user.uid;
+                userInfoDiv.textContent = `ID do Usuário: ${userId}`;
+                dbInitialized = true;
+                // Start listening for transactions
+                listenForTransactions();
+            } else {
+                // Se não houver usuário logado, faça login anonimamente
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Erro ao fazer login anônimo:", error);
+                }
+            }
+        });
+        
+        // Helper function to format currency
+        const formatCurrency = (value) => {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+        };
+        
+        // Main function to listen for real-time data updates
+        const listenForTransactions = () => {
+            if (!dbInitialized || !userId) return;
+            const transactionsCol = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
+            
+            onSnapshot(transactionsCol, (querySnapshot) => {
+                const transactions = [];
+                let totalIncome = 0;
+                let totalExpenses = 0;
+                const installments = [];
+                const expensesByCategory = {};
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const value = parseFloat(data.valor);
+                    
+                    if (data.tipo === 'Entrada') {
+                        totalIncome += value;
+                    } else if (data.tipo === 'Saída') {
+                        totalExpenses += value;
+                        if (!expensesByCategory[data.categoria]) {
+                            expensesByCategory[data.categoria] = 0;
+                        }
+                        expensesByCategory[data.categoria] += value;
+                    }
+
+                    if (data.parcelado && data.parcelasRestantes > 0) {
+                        installments.push({ id: doc.id, ...data });
+                    }
+
+                    transactions.push({ id: doc.id, ...data });
+                });
+
+                updateDashboard(totalIncome, totalExpenses);
+                renderTransactions(transactions);
+                renderInstallments(installments);
+                // Store expense data for AI analysis
+                window.expensesByCategory = expensesByCategory;
+                window.totalIncome = totalIncome;
+                window.totalExpenses = totalExpenses;
+            }, (error) => {
+                console.error("Erro ao carregar transações em tempo real:", error);
+            });
+        };
+        
+        // Update Dashboard UI
+        const updateDashboard = (income, expenses) => {
+            const balance = income - expenses;
+            totalBalanceEl.textContent = formatCurrency(balance);
+            totalIncomeEl.textContent = formatCurrency(income);
+            totalExpensesEl.textContent = formatCurrency(expenses);
+        };
+        
+        // Render transactions in the table
+        const renderTransactions = (transactions) => {
+            transactionList.innerHTML = '';
+            transactions.sort((a, b) => new Date(b.data) - new Date(a.data)); // Sort by date
+            transactions.forEach(transaction => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors duration-150';
+                
+                const valueColor = transaction.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600';
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${transaction.data}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${transaction.descricao}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm ${valueColor} font-semibold">${transaction.tipo}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formatCurrency(transaction.valor)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button class="text-red-600 hover:text-red-900" onclick="deleteTransaction('${transaction.id}')">Excluir</button>
+                    </td>
+                `;
+                transactionList.appendChild(row);
+            });
+        };
+
+        // Render installment items
+        const renderInstallments = (installments) => {
+            installmentsList.innerHTML = '';
+            if (installments.length === 0) {
+                installmentsList.innerHTML = '<p class="text-gray-500">Nenhuma parcela pendente.</p>';
+                return;
+            }
+
+            installments.forEach(item => {
+                const installmentItem = document.createElement('div');
+                installmentItem.className = 'bg-gray-100 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0';
+                installmentItem.innerHTML = `
+                    <div>
+                        <div class="font-semibold text-gray-800">${item.descricao}</div>
+                        <div class="text-sm text-gray-600">
+                            ${item.parcelasRestantes} de ${item.parcelasTotal} parcelas restantes.
+                            <br>
+                            Último valor: ${formatCurrency(item.valor)}
+                        </div>
+                    </div>
+                    <button class="bg-blue-600 text-white font-semibold py-1 px-3 rounded-md text-sm hover:bg-blue-700 transition-colors duration-200" onclick="payInstallment('${item.id}', ${item.parcelasRestantes})">
+                        Pagar Parcela
+                    </button>
+                `;
+                installmentsList.appendChild(installmentItem);
+            });
+        };
+
+        // Add a new transaction
+        document.getElementById('transaction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const transaction = {
+                data: form.date.value,
+                descricao: form.description.value,
+                tipo: form.type.value,
+                categoria: form.category.value,
+                meioPagamento: form['payment-method'].value,
+                valor: parseFloat(form.value.value),
+                parcelado: form['is-installment'].checked,
+                parcelasTotal: form['is-installment'].checked ? parseInt(form['total-installments'].value) : null,
+                parcelasRestantes: form['is-installment'].checked ? parseInt(form['total-installments'].value) : null,
+            };
+
+            if (!dbInitialized || !userId) {
+                console.error("Banco de dados não inicializado ou usuário não autenticado.");
+                return;
+            }
+
+            try {
+                const transactionsCol = collection(db, `artifacts/${appId}/users/${userId}/transactions`);
+                await addDoc(transactionsCol, transaction);
+                form.reset();
+                updateCategories('Entrada');
+            } catch (error) {
+                console.error("Erro ao adicionar documento:", error);
+            }
+        });
+        
+        // Pay an installment
+        window.payInstallment = async (id, remaining) => {
+            if (!dbInitialized || !userId) return;
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, id);
+                await updateDoc(docRef, {
+                    parcelasRestantes: remaining - 1
+                });
+            } catch (error) {
+                console.error("Erro ao atualizar parcela:", error);
+            }
+        };
+
+        // Delete a transaction
+        window.deleteTransaction = async (id) => {
+            if (!dbInitialized || !userId) return;
+            try {
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/transactions`, id);
+                await deleteDoc(docRef);
+            } catch (error) {
+                console.error("Erro ao excluir documento:", error);
+            }
+        };
+
+        // --- Gemini API Integration: Economy Tips ---
+        analyzeButton.addEventListener('click', async () => {
+            if (!window.expensesByCategory || Object.keys(window.expensesByCategory).length === 0) {
+                analysisResultDiv.classList.remove('hidden');
+                analysisTextEl.textContent = "Adicione algumas transações para que a IA possa analisar seus gastos e oferecer dicas de economia.";
+                return;
+            }
+
+            // Show loading state
+            analyzeButton.textContent = "Analisando...";
+            analyzeButton.disabled = true;
+            analysisResultDiv.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+            
+            const prompt = `
+            Você é um consultor financeiro. Analise os seguintes dados de gastos de uma pessoa e forneça 3 a 5 dicas de economia personalizadas e claras. As dicas devem ser diretas, acionáveis e amigáveis. Use uma linguagem informal.
+
+            Dados Financeiros:
+            - Receita Total: ${window.totalIncome}
+            - Despesa Total: ${window.totalExpenses}
+            - Despesas por Categoria: ${JSON.stringify(window.expensesByCategory, null, 2)}
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: "Atue como um conselheiro financeiro amigável e útil. Forneça conselhos práticos e concisos para economizar dinheiro, baseados em dados de gastos. A resposta deve ser em português." }] },
+            };
+
+            const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
+            
+            let resultText = "Não foi possível gerar as dicas no momento. Tente novamente mais tarde.";
+            
+            // Exponential backoff for retries
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    const candidate = result?.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        resultText = candidate.content.parts[0].text;
+                        break;
+                    }
+                } catch (error) {
+                    console.error("Erro ao chamar a API Gemini:", error);
+                    await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
+                }
+            }
+
+            // Update UI with the result
+            loadingOverlay.classList.add('hidden');
+            analyzeButton.textContent = "✨ Dicas de Economia";
+            analyzeButton.disabled = false;
+            analysisResultDiv.classList.remove('hidden');
+            analysisTextEl.textContent = resultText;
+            budgetResultDiv.classList.add('hidden'); // Hide the other result
+        });
+
+        // --- Gemini API Integration: Budget Suggestion ---
+        suggestBudgetButton.addEventListener('click', async () => {
+            if (!window.expensesByCategory || Object.keys(window.expensesByCategory).length === 0) {
+                budgetResultDiv.classList.remove('hidden');
+                budgetExplanationEl.textContent = "Adicione algumas transações para que a IA possa analisar seus gastos e sugerir um orçamento.";
+                budgetTableBody.innerHTML = '';
+                return;
+            }
+
+            // Show loading state
+            suggestBudgetButton.textContent = "Analisando...";
+            suggestBudgetButton.disabled = true;
+            budgetResultDiv.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+            
+            const prompt = `
+            Você é um especialista em orçamento. Analise os seguintes dados de gastos de uma pessoa e forneça uma divisão de orçamento mensal recomendada em porcentagens, com uma breve explicação. A resposta DEVE ser um objeto JSON.
+
+            O objeto JSON deve ter a seguinte estrutura:
+            {
+                "explanation": "Uma breve explicação sobre a recomendação do orçamento.",
+                "budget": [
+                    { "category": "Categoria A", "percentage": 0.20 },
+                    { "category": "Categoria B", "percentage": 0.30 }
+                ]
+            }
+
+            Certifique-se de que a soma de todas as porcentagens no array 'budget' seja igual a 1.0. A resposta deve ser apenas o objeto JSON, sem nenhum outro texto.
+            
+            Dados Financeiros:
+            - Receita Total: ${window.totalIncome}
+            - Despesa Total: ${window.totalExpenses}
+            - Despesas por Categoria: ${JSON.stringify(window.expensesByCategory, null, 2)}
+            `;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: "Atue como um especialista em finanças e forneça uma recomendação de orçamento em formato JSON, com base nos dados fornecidos." }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            "explanation": { "type": "STRING" },
+                            "budget": {
+                                "type": "ARRAY",
+                                "items": {
+                                    "type": "OBJECT",
+                                    "properties": {
+                                        "category": { "type": "STRING" },
+                                        "percentage": { "type": "NUMBER" }
+                                    },
+                                    "propertyOrdering": ["category", "percentage"]
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=";
+            
+            let budgetData = null;
+            let errorMessage = "Não foi possível gerar o orçamento no momento. Tente novamente mais tarde.";
+            
+            // Exponential backoff for retries
+            for (let i = 0; i < 3; i++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    const candidate = result?.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const jsonText = candidate.content.parts[0].text;
+                        budgetData = JSON.parse(jsonText);
+                        break;
+                    }
+                } catch (error) {
+                    console.error("Erro ao chamar a API Gemini:", error);
+                    budgetData = null;
+                    await new Promise(res => setTimeout(res, Math.pow(2, i) * 1000));
+                }
+            }
+
+            // Update UI with the result
+            loadingOverlay.classList.add('hidden');
+            suggestBudgetButton.textContent = "✨ Sugerir Orçamento";
+            suggestBudgetButton.disabled = false;
+            analysisResultDiv.classList.add('hidden'); // Hide the other result
+            budgetResultDiv.classList.remove('hidden');
+
+            if (budgetData) {
+                budgetExplanationEl.textContent = budgetData.explanation;
+                budgetTableBody.innerHTML = '';
+                budgetData.budget.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-gray-200';
+                    row.innerHTML = `
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${item.category}</td>
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${(item.percentage * 100).toFixed(0)}%</td>
+                    `;
+                    budgetTableBody.appendChild(row);
+                });
+            } else {
+                budgetExplanationEl.textContent = errorMessage;
+                budgetTableBody.innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>
